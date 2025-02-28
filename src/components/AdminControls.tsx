@@ -28,8 +28,8 @@ const AdminControls: React.FC = () => {
   const handleAddMinister = () => {
     if (!newMinisterName.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a name for the new minister",
+        title: "Errore",
+        description: "Inserisci un nome per il nuovo ministro",
         variant: "destructive"
       });
       return;
@@ -46,8 +46,8 @@ const AdminControls: React.FC = () => {
     // In a real app, you would also update the backend data
     // For this demo, we're just updating the UI
     toast({
-      title: "Minister Added",
-      description: `${newMinisterName} has been added as a minister`
+      title: "Ministro Aggiunto",
+      description: `${newMinisterName} è stato aggiunto come ministro eucaristico`
     });
     
     // Clear the input
@@ -60,15 +60,15 @@ const AdminControls: React.FC = () => {
     
     // In a real app, you would also update the backend data
     toast({
-      title: "Minister Removed",
-      description: "The minister has been removed from the system"
+      title: "Ministro Rimosso",
+      description: "Il ministro è stato rimosso dal sistema"
     });
   };
 
   const handlePrintSchedule = () => {
     toast({
-      title: "Printing Schedule",
-      description: "Preparing to print the current schedule"
+      title: "Stampa Calendario",
+      description: "Preparazione della stampa del calendario"
     });
     
     // In a real app, this would trigger a print-friendly version
@@ -79,36 +79,36 @@ const AdminControls: React.FC = () => {
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Manage Ministers</CardTitle>
+          <CardTitle className="text-2xl">Gestione Ministri Eucaristici</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="newMinister" className="text-xl">Add New Minister</Label>
+              <Label htmlFor="newMinister" className="text-xl">Aggiungi Nuovo Ministro</Label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="newMinister"
                   value={newMinisterName}
                   onChange={(e) => setNewMinisterName(e.target.value)}
-                  placeholder="Enter minister name"
+                  placeholder="Inserisci nome del ministro"
                   className="large-input flex-grow"
                 />
                 <Button 
                   onClick={handleAddMinister}
                   className="text-xl"
                 >
-                  Add Minister
+                  Aggiungi Ministro
                 </Button>
               </div>
             </div>
             
             <div>
-              <h3 className="text-xl font-bold mb-2">Current Ministers</h3>
+              <h3 className="text-xl font-bold mb-2">Ministri Attuali</h3>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xl">Name</TableHead>
-                    <TableHead className="text-xl text-right">Actions</TableHead>
+                    <TableHead className="text-xl">Nome</TableHead>
+                    <TableHead className="text-xl text-right">Azioni</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -121,7 +121,7 @@ const AdminControls: React.FC = () => {
                           onClick={() => handleRemoveMinister(minister.id)}
                           className="text-lg"
                         >
-                          Remove
+                          Rimuovi
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -135,25 +135,25 @@ const AdminControls: React.FC = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Schedule Options</CardTitle>
+          <CardTitle className="text-2xl">Opzioni Calendario</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button 
             onClick={handlePrintSchedule} 
             className="text-xl w-full sm:w-auto"
           >
-            Print Current Schedule
+            Stampa Calendario Attuale
           </Button>
           
           <div className="text-xl">
             <p>
-              More administrative features would be available here, such as:
+              Altre funzionalità amministrative sarebbero disponibili qui, come:
             </p>
             <ul className="list-disc list-inside mt-2 ml-4 space-y-2">
-              <li>Managing service times</li>
-              <li>Setting services as not requiring ministers</li>
-              <li>Sending reminder emails</li>
-              <li>Viewing participation reports</li>
+              <li>Gestione orari delle celebrazioni</li>
+              <li>Impostare celebrazioni che non richiedono ministri</li>
+              <li>Invio email di promemoria</li>
+              <li>Visualizzazione dei report di partecipazione</li>
             </ul>
           </div>
         </CardContent>

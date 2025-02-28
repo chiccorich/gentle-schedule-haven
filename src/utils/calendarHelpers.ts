@@ -1,5 +1,6 @@
 
 import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
+import { it } from "date-fns/locale";
 
 export interface Minister {
   id: string;
@@ -34,17 +35,17 @@ export interface DayData {
 
 // Mock services data
 export const SERVICES: Service[] = [
-  { id: "1", name: "Morning Service", time: "9:00 AM", positions: 2 },
-  { id: "2", name: "Evening Service", time: "6:00 PM", positions: 2 },
+  { id: "1", name: "Santa Messa Mattutina", time: "9:00", positions: 2 },
+  { id: "2", name: "Santa Messa Serale", time: "18:00", positions: 2 },
 ];
 
 // Mock ministers data
 export const MINISTERS: Minister[] = [
-  { id: "1", name: "John Smith" },
-  { id: "2", name: "Mary Johnson" },
-  { id: "3", name: "Robert Williams" },
-  { id: "4", name: "Patricia Brown" },
-  { id: "5", name: "Michael Davis" },
+  { id: "1", name: "Giovanni Bianchi" },
+  { id: "2", name: "Maria Rossi" },
+  { id: "3", name: "Roberto Verdi" },
+  { id: "4", name: "Patrizia Neri" },
+  { id: "5", name: "Michele Russo" },
 ];
 
 // Mock minister slots data
@@ -79,10 +80,10 @@ export const initializeSlots = () => {
   // Add some example assignments
   if (MINISTER_SLOTS.length > 0) {
     MINISTER_SLOTS[0].ministerId = "1";
-    MINISTER_SLOTS[0].ministerName = "John Smith";
+    MINISTER_SLOTS[0].ministerName = "Giovanni Bianchi";
     
     MINISTER_SLOTS[2].ministerId = "2";
-    MINISTER_SLOTS[2].ministerName = "Mary Johnson";
+    MINISTER_SLOTS[2].ministerName = "Maria Rossi";
   }
   
   return MINISTER_SLOTS;
@@ -187,12 +188,12 @@ export const removeMinister = (slotId: string): boolean => {
 
 // Format date for display
 export const formatDate = (date: Date): string => {
-  return format(date, "MMMM d, yyyy");
+  return format(date, "d MMMM yyyy", { locale: it });
 };
 
 // Format day for display
 export const formatDay = (date: Date): string => {
-  return format(date, "EEE, MMM d");
+  return format(date, "EEE, d MMM", { locale: it });
 };
 
 // Get the previous week

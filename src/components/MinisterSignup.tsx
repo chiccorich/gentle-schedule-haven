@@ -38,7 +38,7 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
     return null;
   }
 
-  const serviceName = SERVICES.find(s => s.id === slot.serviceId)?.name || "Service";
+  const serviceName = SERVICES.find(s => s.id === slot.serviceId)?.name || "Santa Messa";
   const serviceTime = SERVICES.find(s => s.id === slot.serviceId)?.time || "";
   const isUserAssigned = slot.ministerId === user.id;
   
@@ -49,14 +49,14 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
     
     if (success) {
       toast({
-        title: "Sign Up Successful",
-        description: `You have been assigned to ${serviceName} on ${formatDate(slot.date)}`
+        title: "Iscrizione Confermata",
+        description: `Sei stato assegnato alla ${serviceName} del ${formatDate(slot.date)}`
       });
       onComplete();
     } else {
       toast({
-        title: "Sign Up Failed",
-        description: "You may already be assigned to another position in this service",
+        title: "Iscrizione Fallita",
+        description: "Potresti essere già assegnato ad un altro servizio in questa celebrazione",
         variant: "destructive"
       });
       onClose();
@@ -70,14 +70,14 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
     
     if (success) {
       toast({
-        title: "Assignment Canceled",
-        description: `You have been removed from ${serviceName} on ${formatDate(slot.date)}`
+        title: "Servizio Cancellato",
+        description: `Sei stato rimosso dalla ${serviceName} del ${formatDate(slot.date)}`
       });
       onComplete();
     } else {
       toast({
-        title: "Error",
-        description: "Failed to cancel your assignment",
+        title: "Errore",
+        description: "Impossibile cancellare il tuo servizio",
         variant: "destructive"
       });
       onClose();
@@ -89,26 +89,26 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl">
-            {isUserAssigned ? "Cancel Assignment" : "Sign Up for Service"}
+            {isUserAssigned ? "Cancella Servizio" : "Conferma Disponibilità"}
           </DialogTitle>
           <DialogDescription className="text-xl pt-2">
             {serviceName} - {serviceTime}<br />
             {formatDate(slot.date)}<br />
-            Position {slot.position}
+            Servizio {slot.position}
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-6">
           <p className="text-xl">
             {isUserAssigned
-              ? "Are you sure you want to cancel your assignment for this service?"
-              : "Would you like to sign up for this ministry position?"}
+              ? "Sei sicuro di voler cancellare la tua disponibilità per questo servizio?"
+              : "Vuoi confermare la tua disponibilità per questo servizio?"}
           </p>
         </div>
         
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
           <Button variant="outline" onClick={onClose} className="text-xl">
-            Cancel
+            Annulla
           </Button>
           
           {isUserAssigned ? (
@@ -117,14 +117,14 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
               onClick={handleCancel}
               className="text-xl"
             >
-              Remove Me From This Service
+              Rimuovi Il Mio Servizio
             </Button>
           ) : (
             <Button 
               onClick={handleSignup}
               className="text-xl"
             >
-              Confirm Sign Up
+              Conferma Disponibilità
             </Button>
           )}
         </DialogFooter>

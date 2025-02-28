@@ -23,8 +23,8 @@ const Login: React.FC = () => {
     
     if (!username || !password) {
       toast({
-        title: "Please fill in all fields",
-        description: "Username and password are required",
+        title: "Compila tutti i campi",
+        description: "Username e password sono obbligatori",
         variant: "destructive",
       });
       return;
@@ -37,21 +37,21 @@ const Login: React.FC = () => {
       
       if (success) {
         toast({
-          title: "Login successful",
-          description: "Welcome to the Church Ministers Calendar",
+          title: "Accesso effettuato",
+          description: "Benvenuto al Calendario Ministri Eucaristici",
         });
         navigate("/dashboard");
       } else {
         toast({
-          title: "Login failed",
-          description: "Please check your username and password",
+          title: "Accesso fallito",
+          description: "Controlla username e password",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Login error",
-        description: "An unexpected error occurred",
+        title: "Errore di accesso",
+        description: "Si è verificato un errore imprevisto",
         variant: "destructive",
       });
     } finally {
@@ -63,20 +63,20 @@ const Login: React.FC = () => {
     <div className="flex items-center justify-center min-h-screen p-4 animate-fade-in">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Church Ministers Calendar</CardTitle>
-          <CardDescription className="text-xl mt-2">Please sign in to continue</CardDescription>
+          <CardTitle className="text-3xl">Calendario Ministri Eucaristici</CardTitle>
+          <CardDescription className="text-xl mt-2">Accedi per continuare</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-xl">Username</Label>
+              <Label htmlFor="username" className="text-xl">Nome Utente</Label>
               <Input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="large-input"
-                placeholder="Enter your username"
+                placeholder="Inserisci nome utente"
               />
             </div>
             <div className="space-y-2">
@@ -87,7 +87,7 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="large-input"
-                placeholder="Enter your password"
+                placeholder="Inserisci password"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -97,7 +97,7 @@ const Login: React.FC = () => {
                 onCheckedChange={(checked) => setRemember(checked === true)}
                 className="large-checkbox"
               />
-              <Label htmlFor="remember" className="text-xl">Remember me on this device</Label>
+              <Label htmlFor="remember" className="text-xl">Ricordami su questo dispositivo</Label>
             </div>
           </form>
         </CardContent>
@@ -107,12 +107,12 @@ const Login: React.FC = () => {
             disabled={isLoading}
             className="w-full text-2xl py-6"
           >
-            {isLoading ? "Signing In..." : "Sign In"}
+            {isLoading ? "Accesso in corso..." : "Accedi"}
           </Button>
         </CardFooter>
         <div className="p-4 text-center">
           <p className="text-lg text-gray-600">
-            Demo accounts: <br />
+            Account dimostrativi: <br />
             admin / admin123 <br />
             minister1 / church123
           </p>

@@ -29,8 +29,8 @@ const Dashboard: React.FC = () => {
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
           <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
-            <h1 className="text-3xl font-bold">Church Ministers Calendar</h1>
-            <p className="text-xl text-gray-600">Welcome, {user?.name}</p>
+            <h1 className="text-3xl font-bold">Calendario Ministri Eucaristici</h1>
+            <p className="text-xl text-gray-600">Benvenuto, {user?.name}</p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
                 variant="outline"
                 className="text-xl"
               >
-                Admin Dashboard
+                Pannello Amministratore
               </Button>
             )}
             <Button 
@@ -48,7 +48,7 @@ const Dashboard: React.FC = () => {
               variant="outline"
               className="text-xl"
             >
-              Sign Out
+              Esci
             </Button>
           </div>
         </div>
@@ -58,10 +58,10 @@ const Dashboard: React.FC = () => {
         <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="calendar" className="text-xl py-3">
-              Calendar View
+              Calendario Completo
             </TabsTrigger>
             <TabsTrigger value="my-schedule" className="text-xl py-3">
-              My Schedule
+              I Miei Servizi
             </TabsTrigger>
           </TabsList>
           
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
       
       <footer className="bg-gray-100 border-t border-gray-200 py-4">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-lg text-gray-600">Church Ministers Calendar • Tap Help for Instructions</p>
+          <p className="text-lg text-gray-600">Calendario Ministri Eucaristici • Tocca Aiuto per Istruzioni</p>
         </div>
       </footer>
     </div>

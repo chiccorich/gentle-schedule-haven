@@ -17,6 +17,7 @@ import {
   SERVICES
 } from "@/utils/calendarHelpers";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
+import { it } from "date-fns/locale";
 
 const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule = false }) => {
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -44,8 +45,8 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
   const handlePrintCalendar = () => {
     window.print();
     toast({
-      title: "Printing Calendar",
-      description: "Your calendar has been sent to the printer"
+      title: "Stampa Calendario",
+      description: "Il calendario è stato inviato alla stampante"
     });
   };
 
@@ -60,8 +61,8 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
     // If slot is already taken by someone else, show who has it
     if (slot.ministerId && slot.ministerId !== user?.id) {
       toast({
-        title: "Position Already Filled",
-        description: `This position is already assigned to ${slot.ministerName}`,
+        title: "Incarico Già Assegnato",
+        description: `Questo incarico è già assegnato a ${slot.ministerName}`,
       });
       return;
     }
@@ -100,7 +101,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
         <div 
           className="minister-slot-empty p-2 rounded-lg text-center h-[60px] flex items-center justify-center"
         >
-          <div className="text-lg">No Service</div>
+          <div className="text-lg">Nessuna Celebrazione</div>
         </div>
       );
     }
@@ -115,10 +116,10 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
     
     if (!slot.ministerId) {
       cellClasses += " minister-slot-available cursor-pointer hover:opacity-90";
-      slotText = "Available";
+      slotText = "Disponibile";
     } else {
       cellClasses += " minister-slot-filled cursor-pointer hover:opacity-90";
-      slotText = slot.ministerName || "Assigned";
+      slotText = slot.ministerName || "Assegnato";
     }
     
     return (
@@ -127,7 +128,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
         className={cellClasses}
         onClick={() => handleSlotClick(slot)}
       >
-        <div className="text-lg">{`Position ${position}`}</div>
+        <div className="text-lg">{`Servizio ${position}`}</div>
         <div className="text-lg font-medium">{slotText}</div>
       </div>
     );
@@ -145,10 +146,13 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
 
   // Format dates for week headers
   const formatWeekRange = (startOfWeekDate: Date) => {
-    const weekStart = format(startOfWeekDate, "MMMM d");
-    const weekEnd = format(endOfWeek(startOfWeekDate), "MMMM d, yyyy");
+    const weekStart = format(startOfWeekDate, "d MMMM", { locale: it });
+    const weekEnd = format(endOfWeek(startOfWeekDate), "d MMMM yyyy", { locale: it });
     return `${weekStart} - ${weekEnd}`;
   };
+
+  // Italian days of the week
+  const italianDays = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 
   // Function to render the grid calendar view (week by week)
   const renderGridCalendar = () => {
@@ -160,12 +164,12 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
         <Card key={`week-${weekIndex}`} className="mb-8 overflow-hidden print:mb-4 print:break-inside-avoid">
           <CardContent className="p-0">
             <div className="calendar-header text-center p-4 text-2xl">
-              Week of {formatWeekRange(sundayOfWeek)}
+              Settimana del {formatWeekRange(sundayOfWeek)}
             </div>
             
             <div className="grid grid-cols-7 border-b print:text-base">
               {/* Day headers */}
-              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => (
+              {italianDays.map((day, index) => (
                 <div key={day} className="p-2 font-bold text-lg text-center border-r last:border-r-0">
                   {day}
                 </div>
@@ -175,7 +179,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
               {week.map((day, index) => (
                 <div key={`date-${index}`} className={`p-2 text-center border-r last:border-r-0 text-lg ${day.isToday ? 'bg-calendar-current font-bold' : ''}`}>
                   {format(day.date, "d/MM")}
-                  {day.isToday && <span className="ml-1 text-blue-600">(Today)</span>}
+                  {day.isToday && <span className="ml-1 text-blue-600">(Oggi)</span>}
                 </div>
               ))}
               
@@ -215,8 +219,8 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
       <Card key={`day-${dayIndex}`} className="mb-6">
         <CardContent>
           <div className="calendar-header text-center p-2 text-xl">
-            {format(day.date, "EEEE, MMMM d, yyyy")}
-            {day.isToday && <span className="ml-2 text-blue-600 font-semibold">(Today)</span>}
+            {format(day.date, "EEEE, d MMMM yyyy", { locale: it })}
+            {day.isToday && <span className="ml-2 text-blue-600 font-semibold">(Oggi)</span>}
           </div>
           
           <div className="space-y-4 mt-4">
@@ -244,9 +248,9 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
                           className={cellClasses}
                           onClick={() => handleSlotClick(slot)}
                         >
-                          <div className="text-lg font-semibold">{`Position ${slot.position}`}</div>
+                          <div className="text-lg font-semibold">{`Servizio ${slot.position}`}</div>
                           <div className="text-lg">
-                            {!slot.ministerId ? "Available - Tap to Sign Up" : slot.ministerName}
+                            {!slot.ministerId ? "Disponibile - Tocca per Confermare" : slot.ministerName}
                           </div>
                         </div>
                       );
@@ -263,7 +267,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
   const renderCalendarHeader = () => (
     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 print:hidden">
       <h2 className="text-3xl font-bold mb-4 md:mb-0">
-        {filterOwnSchedule ? "My Schedule" : "Minister Schedule"}
+        {filterOwnSchedule ? "I Miei Servizi" : "Calendario Liturgico"}
       </h2>
       <div className="flex flex-wrap gap-3 justify-center">
         <Button 
@@ -271,28 +275,28 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
           className="text-xl"
           variant="outline"
         >
-          Previous Week
+          Settimana Precedente
         </Button>
         <Button 
           onClick={handleNextWeek}
           className="text-xl"
           variant="outline"
         >
-          Next Week
+          Settimana Successiva
         </Button>
         <Button
           onClick={toggleViewMode}
           className="text-xl md:hidden"
           variant="outline"
         >
-          {viewMode === "grid" ? "Day View" : "Grid View"}
+          {viewMode === "grid" ? "Vista Giornaliera" : "Vista Griglia"}
         </Button>
         <Button
           onClick={handlePrintCalendar}
           className="text-xl"
           variant="outline"
         >
-          <Printer className="mr-2 h-5 w-5" /> Print
+          <Printer className="mr-2 h-5 w-5" /> Stampa
         </Button>
       </div>
     </div>
@@ -311,12 +315,12 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
       
       {filterOwnSchedule && !hasMyScheduleData ? (
         <div className="text-center p-8 border rounded-lg bg-gray-50">
-          <h3 className="text-2xl font-bold mb-4">No Scheduled Services</h3>
+          <h3 className="text-2xl font-bold mb-4">Nessun Servizio Programmato</h3>
           <p className="text-xl">
-            You are not currently signed up for any services.
+            Al momento non sei iscritto a nessun servizio.
           </p>
           <p className="text-xl mt-4">
-            Go to the Calendar View to sign up for available positions.
+            Vai alla vista Calendario per iscriverti ai servizi disponibili.
           </p>
         </div>
       ) : (
