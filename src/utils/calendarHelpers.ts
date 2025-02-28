@@ -117,6 +117,7 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
   
   const result: DayData[] = [];
   const today = new Date();
+  // Reset time portion to ensure correct day comparison
   today.setHours(0, 0, 0, 0);
   
   // Get the service times from the calendar management
@@ -124,11 +125,12 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
   
   for (let i = 0; i < numberOfDays; i++) {
     const date = addDays(startDate, i);
+    // Reset time portion to ensure correct day comparison
     date.setHours(0, 0, 0, 0);
     
     const dayData: DayData = {
       date: new Date(date), // Ensure we have a proper Date object
-      isToday: date.getTime() === today.getTime(),
+      isToday: isSameDay(date, today),
       isCurrentMonth: date.getMonth() === today.getMonth(),
       services: [],
     };
