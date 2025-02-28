@@ -70,15 +70,7 @@ const Dashboard: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="my-schedule">
-            <div className="p-4 text-center">
-              <h2 className="text-2xl font-bold mb-6">My Scheduled Services</h2>
-              <p className="text-xl">
-                This tab would show only the services you are scheduled for.
-              </p>
-              <p className="text-xl mt-4">
-                In the full application, this would filter the calendar to show only your assignments.
-              </p>
-            </div>
+            <Calendar filterOwnSchedule={true} />
           </TabsContent>
         </Tabs>
       </main>

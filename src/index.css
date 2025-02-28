@@ -112,6 +112,41 @@
   button, .btn {
     @apply text-xl py-3 px-6 rounded-lg transition-colors duration-200;
   }
+
+  @media print {
+    body {
+      font-size: 12pt;
+    }
+    
+    header, footer, nav, .print\:hidden {
+      display: none !important;
+    }
+    
+    .container {
+      max-width: 100% !important;
+      padding: 0 !important;
+    }
+    
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 10pt;
+    }
+    
+    h2 {
+      font-size: 16pt;
+      margin-bottom: 8pt;
+    }
+    
+    h3 {
+      font-size: 14pt;
+      margin-bottom: 6pt;
+    }
+    
+    p {
+      font-size: 12pt;
+      margin-bottom: 6pt;
+    }
+  }
 }
 
 @layer components {
