@@ -1,6 +1,7 @@
 
 import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
 import { it } from "date-fns/locale";
+import { getCalendarServiceTimes, ServiceTime, getDailyServiceTimes } from "./calendarManagement";
 
 export interface Minister {
   id: string;
@@ -33,7 +34,7 @@ export interface DayData {
   }[];
 }
 
-// Mock services data
+// Default services for fallback
 export const SERVICES: Service[] = [
   { id: "1", name: "Santa Messa Mattutina", time: "9:00", positions: 2 },
   { id: "2", name: "Santa Messa Serale", time: "18:00", positions: 2 },
@@ -56,14 +57,26 @@ export const initializeSlots = () => {
   MINISTER_SLOTS = [];
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 0 }); // Sunday start
+  const serviceTimes = getCalendarServiceTimes();
   
   // Create slots for 4 weeks
   for (let i = 0; i < 28; i++) {
     const date = addDays(startDate, i);
-    const dayOfWeek = getDay(date);
+    const servicesForDay = getDailyServiceTimes(serviceTimes, date);
     
-    // Only create slots for Sunday
-    if (dayOfWeek === 0) {
+    if (servicesForDay.length > 0) {
+      servicesForDay.forEach(serviceTime => {
+        for (let position = 1; position <= serviceTime.positions; position++) {
+          MINISTER_SLOTS.push({
+            id: `slot-${date.toISOString()}-${serviceTime.id}-${position}`,
+            serviceId: serviceTime.id,
+            date: date,
+            position: position,
+          });
+        }
+      });
+    } else if (getDay(date) === 0) {
+      // Fallback to default services for Sundays if no specific services defined
       SERVICES.forEach(service => {
         for (let position = 1; position <= service.positions; position++) {
           MINISTER_SLOTS.push({
@@ -82,8 +95,10 @@ export const initializeSlots = () => {
     MINISTER_SLOTS[0].ministerId = "1";
     MINISTER_SLOTS[0].ministerName = "Giovanni Bianchi";
     
-    MINISTER_SLOTS[2].ministerId = "2";
-    MINISTER_SLOTS[2].ministerName = "Maria Rossi";
+    if (MINISTER_SLOTS.length > 2) {
+      MINISTER_SLOTS[2].ministerId = "2";
+      MINISTER_SLOTS[2].ministerName = "Maria Rossi";
+    }
   }
   
   return MINISTER_SLOTS;
@@ -94,6 +109,9 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
   const result: DayData[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+  // Get the service times from the calendar management
+  const serviceTimes = getCalendarServiceTimes();
   
   for (let i = 0; i < numberOfDays; i++) {
     const date = addDays(startDate, i);
@@ -106,8 +124,32 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
       services: [],
     };
     
-    // Only add services for Sundays (0)
-    if (getDay(date) === 0) {
+    // Get services for this specific day
+    const servicesForDay = getDailyServiceTimes(serviceTimes, date);
+    
+    if (servicesForDay.length > 0) {
+      // Use the services defined in calendar management
+      servicesForDay.forEach(serviceTime => {
+        const serviceObj: Service = {
+          id: serviceTime.id,
+          name: serviceTime.name,
+          time: serviceTime.time,
+          positions: serviceTime.positions
+        };
+        
+        const slotsForService = MINISTER_SLOTS.filter(
+          slot => 
+            slot.serviceId === serviceTime.id && 
+            slot.date.getTime() === date.getTime()
+        );
+        
+        dayData.services.push({
+          service: serviceObj,
+          slots: slotsForService,
+        });
+      });
+    } else if (getDay(date) === 0) {
+      // Fallback to default services for Sundays if no specific services defined
       SERVICES.forEach(service => {
         const slotsForService = MINISTER_SLOTS.filter(
           slot => 
