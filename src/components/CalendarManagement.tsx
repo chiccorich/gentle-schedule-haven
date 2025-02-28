@@ -53,7 +53,8 @@ const CalendarManagement: React.FC = () => {
 
   // Initialize week dates when current date changes
   useEffect(() => {
-    const startDate = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
+    // Start the week on Monday (weekStartsOn: 1)
+    const startDate = startOfWeek(currentDate, { weekStartsOn: 1 });
     const dates = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
     setWeekDates(dates);
     
@@ -137,7 +138,7 @@ const CalendarManagement: React.FC = () => {
     return getDailyServiceTimes(serviceTimes, date);
   };
 
-  // Display Italian days of the week
+  // Display Italian days of the week - rearranged to start with Monday
   const italianDays = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
   const isSpecialDay = (day: Date): boolean => {

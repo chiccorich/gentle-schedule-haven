@@ -18,7 +18,10 @@ import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
 
 const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule = false }) => {
-  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(() => {
+    // Start the week on Monday (weekStartsOn: 1)
+    return startOfWeek(new Date(), { weekStartsOn: 1 });
+  });
   const [calendarData, setCalendarData] = useState<DayData[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<MinisterSlot | null>(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -168,24 +171,25 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
   // Format dates for week headers
   const formatWeekRange = (startOfWeekDate: Date) => {
     const weekStart = format(startOfWeekDate, "d MMMM", { locale: it });
-    const weekEnd = format(endOfWeek(startOfWeekDate), "d MMMM yyyy", { locale: it });
+    const weekEnd = format(endOfWeek(startOfWeekDate, { weekStartsOn: 1 }), "d MMMM yyyy", { locale: it });
     return `${weekStart} - ${weekEnd}`;
   };
 
-  // Italian days of the week
-  const italianDays = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+  // Italian days of the week - rearranged to start with Monday
+  const italianDays = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
   // Function to render the grid calendar view (week by week)
   const renderGridCalendar = () => {
     return weeks.map((week, weekIndex) => {
-      // Get Sunday of this week for the week header
-      const sundayOfWeek = week.find(day => day.date.getDay() === 0)?.date || startOfWeek(week[0].date);
+      // Get Monday of this week for the week header
+      const mondayOfWeek = week.find(day => day.date.getDay() === 1)?.date || 
+                           startOfWeek(week[0].date, { weekStartsOn: 1 });
       
       return (
         <Card key={`week-${weekIndex}`} className="mb-8 overflow-hidden print:mb-4 print:break-inside-avoid">
           <CardContent className="p-0">
             <div className="calendar-header text-center p-4 text-2xl">
-              Settimana del {formatWeekRange(sundayOfWeek)}
+              Settimana del {formatWeekRange(mondayOfWeek)}
             </div>
             
             <div className="grid grid-cols-7 border-b print:text-base">

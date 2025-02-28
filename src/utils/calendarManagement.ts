@@ -33,10 +33,16 @@ export const getCalendarServiceTimes = (): ServiceTime[] => {
   
   // Create some initial demo data
   const today = new Date();
-  const sunday = new Date(today);
+  const monday = new Date(today);
   
-  // Set to next Sunday
-  sunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
+  // Find the current or next Monday
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : 8 - dayOfWeek);
+  monday.setDate(today.getDate() + daysUntilMonday);
+  
+  // Find the next Sunday (6 days after Monday)
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
   
   const initialData: ServiceTime[] = [
     {

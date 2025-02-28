@@ -59,7 +59,8 @@ export const initializeSlots = () => {
   MINISTER_SLOTS = [];
   
   const today = new Date();
-  const startDate = startOfWeek(today, { weekStartsOn: 0 }); // Sunday start
+  // Use Monday as the start of the week
+  const startDate = startOfWeek(today, { weekStartsOn: 1 }); 
   const serviceTimes = getCalendarServiceTimes();
   
   // Create slots for 4 weeks
