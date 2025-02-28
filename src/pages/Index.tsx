@@ -1,12 +1,20 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
-const Index = () => {
+import React, { useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import Login from "@/components/Login";
+
+const Index: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // If already authenticated, redirect to dashboard
+  if (isAuthenticated && !isLoading) {
+    return <Navigate to="/dashboard" />;
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Login />
     </div>
   );
 };

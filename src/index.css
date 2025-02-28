@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 214 82% 45%;  /* Bold blue for buttons */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -32,22 +33,15 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -97,5 +91,67 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  h1 {
+    @apply text-4xl font-bold mb-6;
+  }
+  
+  h2 {
+    @apply text-3xl font-bold mb-4;
+  }
+  
+  h3 {
+    @apply text-2xl font-bold mb-3;
+  }
+  
+  p {
+    @apply text-xl mb-4;
+  }
+  
+  button, .btn {
+    @apply text-xl py-3 px-6 rounded-lg transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .calendar-cell {
+    @apply border border-gray-300 p-2 md:p-4 min-h-[90px] relative;
+  }
+  
+  .calendar-header {
+    @apply bg-gray-100 py-4 font-bold text-xl;
+  }
+  
+  .calendar-day {
+    @apply font-bold text-xl mb-2;
+  }
+  
+  .minister-slot {
+    @apply rounded-lg p-2 mb-2 text-center cursor-pointer;
+  }
+  
+  .minister-slot-available {
+    @apply bg-calendar-available text-black;
+  }
+  
+  .minister-slot-filled {
+    @apply bg-calendar-filled text-white;
+  }
+  
+  .minister-slot-empty {
+    @apply bg-white text-gray-400 border border-gray-200;
+  }
+  
+  .calendar-today {
+    @apply bg-calendar-current;
+  }
+  
+  .large-input {
+    @apply text-xl p-4 border border-gray-300 rounded-lg w-full mb-4;
+  }
+  
+  .large-checkbox {
+    @apply w-6 h-6 mr-3;
   }
 }

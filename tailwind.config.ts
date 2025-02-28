@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Custom colors for minister calendar
+				calendar: {
+					available: '#FEC60D', // Bright yellow
+					filled: '#4CAF50',    // Bright green
+					current: '#E3F2FD',   // Soft blue highlight
 				}
+			},
+			fontSize: {
+				// Extra large sizes for better readability
+				'2xl': '1.75rem',    // 28px
+				'3xl': '2rem',       // 32px 
+				'4xl': '2.5rem',     // 40px
+				'5xl': '3rem',       // 48px
+				'6xl': '3.75rem',    // 60px
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +99,16 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out'
 			}
 		}
 	},
