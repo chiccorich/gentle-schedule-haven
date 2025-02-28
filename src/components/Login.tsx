@@ -110,13 +110,6 @@ const Login: React.FC = () => {
             {isLoading ? "Accesso in corso..." : "Accedi"}
           </Button>
         </CardFooter>
-        <div className="p-4 text-center">
-          <p className="text-lg text-gray-600">
-            Account dimostrativi: <br />
-            admin / admin123 <br />
-            minister1 / church123
-          </p>
-        </div>
       </Card>
     </div>
   );
