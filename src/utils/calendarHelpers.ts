@@ -94,19 +94,6 @@ export const initializeSlots = () => {
     }
   }
   
-  // Add some example assignments (commented out for clarity)
-  /*
-  if (MINISTER_SLOTS.length > 0) {
-    MINISTER_SLOTS[0].ministerId = "1";
-    MINISTER_SLOTS[0].ministerName = "Giovanni Bianchi";
-    
-    if (MINISTER_SLOTS.length > 2) {
-      MINISTER_SLOTS[2].ministerId = "2";
-      MINISTER_SLOTS[2].ministerName = "Maria Rossi";
-    }
-  }
-  */
-  
   return MINISTER_SLOTS;
 };
 

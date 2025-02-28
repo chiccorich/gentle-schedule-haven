@@ -20,6 +20,9 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // Initialize calendar slots to ensure they're up to date
     initializeSlots();
+    
+    // Dispatch event to ensure calendar is up to date
+    window.dispatchEvent(new CustomEvent('calendar-data-updated'));
   }, []);
 
   const handleLogout = () => {
