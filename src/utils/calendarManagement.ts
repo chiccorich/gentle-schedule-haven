@@ -1,5 +1,5 @@
 
-import { isSameDay, format, getDay } from "date-fns";
+import { isSameDay, format, getDay, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -57,6 +57,9 @@ export const getCalendarServiceTimes = (): ServiceTime[] => {
     }
   ];
   
+  // Save initial data to localStorage
+  saveCalendarServiceTimes(initialData);
+  
   return initialData;
 };
 
@@ -64,6 +67,9 @@ export const getCalendarServiceTimes = (): ServiceTime[] => {
 export const saveCalendarServiceTimes = (serviceTimes: ServiceTime[]): void => {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serviceTimes));
+    
+    // Dispatch a custom event to notify components that calendar data has changed
+    window.dispatchEvent(new CustomEvent('calendar-data-updated'));
   } catch (error) {
     console.error("Error saving service times:", error);
   }
@@ -71,14 +77,22 @@ export const saveCalendarServiceTimes = (serviceTimes: ServiceTime[]): void => {
 
 // Get service times for a specific day
 export const getDailyServiceTimes = (serviceTimes: ServiceTime[], date: Date): ServiceTime[] => {
+  // Ensure date is a Date object
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
+  
   return serviceTimes.filter(service => {
+    // Ensure service.date is a Date object
+    const serviceDate = service.date instanceof Date ? service.date : new Date(service.date);
+    
     // Check for exact date match
-    if (isSameDay(service.date, date)) {
+    if (isSameDay(serviceDate, date)) {
       return true;
     }
     
     // Check for recurring events on the same day of week
-    if (service.isRecurring && getDay(service.date) === getDay(date)) {
+    if (service.isRecurring && getDay(serviceDate) === getDay(date)) {
       return true;
     }
     
@@ -96,14 +110,19 @@ export const addServiceTime = (
 ): ServiceTime[] => {
   const newService: ServiceTime = {
     id: uuidv4(),
-    date,
+    date: new Date(date), // Ensure it's a proper Date object
     time,
     name,
     isRecurring,
     positions: 2 // Default to 2 positions for each service
   };
   
-  return [...serviceTimes, newService];
+  const updatedServiceTimes = [...serviceTimes, newService];
+  
+  // Save the updated service times to localStorage
+  saveCalendarServiceTimes(updatedServiceTimes);
+  
+  return updatedServiceTimes;
 };
 
 // Delete a service time by ID
@@ -111,7 +130,12 @@ export const deleteServiceTime = (
   serviceTimes: ServiceTime[],
   serviceId: string
 ): ServiceTime[] => {
-  return serviceTimes.filter(service => service.id !== serviceId);
+  const updatedServiceTimes = serviceTimes.filter(service => service.id !== serviceId);
+  
+  // Save the updated service times to localStorage
+  saveCalendarServiceTimes(updatedServiceTimes);
+  
+  return updatedServiceTimes;
 };
 
 // Copy the schedule from current week to next week
@@ -142,7 +166,7 @@ export const copyWeekSchedule = (
       if (!alreadyExists) {
         const newService: ServiceTime = {
           id: uuidv4(),
-          date: nextDate,
+          date: new Date(nextDate), // Ensure it's a proper Date object
           time: service.time,
           name: service.name,
           isRecurring: false, // Copy as non-recurring
@@ -153,6 +177,9 @@ export const copyWeekSchedule = (
       }
     });
   });
+  
+  // Save the updated service times to localStorage
+  saveCalendarServiceTimes(updatedTimes);
   
   return updatedTimes;
 };

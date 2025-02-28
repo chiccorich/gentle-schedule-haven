@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,12 +9,10 @@ import { MinisterSignup } from "@/components/MinisterSignup";
 import { 
   DayData, 
   MinisterSlot, 
-  Service,
   getCalendarData,
   formatDate,
   getPreviousWeek,
   getNextWeek,
-  SERVICES
 } from "@/utils/calendarHelpers";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
@@ -27,11 +26,31 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Initialize calendar data on component mount and when start date changes
-  useEffect(() => {
+  // Function to load calendar data
+  const loadCalendarData = () => {
     const data = getCalendarData(startDate, 21); // Show 3 weeks
     setCalendarData(data);
+  };
+
+  // Initialize calendar data on component mount and when start date changes
+  useEffect(() => {
+    loadCalendarData();
   }, [startDate]);
+
+  // Listen for calendar data updates
+  useEffect(() => {
+    // This event is dispatched when calendar data is updated via admin panel
+    const handleCalendarDataUpdated = () => {
+      console.log("Calendar data updated event received");
+      loadCalendarData();
+    };
+
+    window.addEventListener('calendar-data-updated', handleCalendarDataUpdated);
+    
+    return () => {
+      window.removeEventListener('calendar-data-updated', handleCalendarDataUpdated);
+    };
+  }, [startDate]); // Re-add listener if startDate changes
 
   const handlePreviousWeek = () => {
     setStartDate(getPreviousWeek(startDate));
@@ -76,8 +95,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
     setSelectedSlot(null);
     
     // Refresh calendar data
-    const data = getCalendarData(startDate, 21);
-    setCalendarData(data);
+    loadCalendarData();
   };
 
   const toggleViewMode = () => {
@@ -88,7 +106,11 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
   const renderPositionCell = (dayDate: Date, serviceId: string, position: number) => {
     // Find the slot for this specific day, service, and position
     const slot = calendarData
-      .find(day => day.date.getTime() === dayDate.getTime())
+      .find(day => 
+        day.date.getFullYear() === dayDate.getFullYear() &&
+        day.date.getMonth() === dayDate.getMonth() &&
+        day.date.getDate() === dayDate.getDate()
+      )
       ?.services
       .find(s => s.service.id === serviceId)
       ?.slots
@@ -182,26 +204,32 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
                 </div>
               ))}
               
-              {/* Service rows */}
-              {SERVICES.map(service => (
-                <React.Fragment key={service.id}>
-                  {/* Service header spans all 7 days */}
-                  <div className="col-span-7 bg-gray-100 p-2 text-lg font-semibold border-t">
-                    {service.name} - {service.time}
-                  </div>
-                  
-                  {/* For each service, show position rows with cells for each day */}
-                  {[...Array(service.positions)].map((_, positionIndex) => (
-                    <React.Fragment key={`${service.id}-position-${positionIndex + 1}`}>
-                      {week.map((day, dayIndex) => (
-                        <div key={`day-${dayIndex}-service-${service.id}-position-${positionIndex + 1}`} className="border-t border-r p-1">
-                          {renderPositionCell(day.date, service.id, positionIndex + 1)}
-                        </div>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              ))}
+              {/* Services for each day */}
+              {week.map(day => {
+                if (day.services.length === 0) {
+                  return (
+                    <div key={`empty-day-${day.date.toISOString()}`} className="col-span-1 p-2 text-center border-r border-t">
+                      <div className="text-gray-500">Nessuna celebrazione</div>
+                    </div>
+                  );
+                }
+                
+                return day.services.map(serviceData => (
+                  <React.Fragment key={`${day.date.toISOString()}-${serviceData.service.id}`}>
+                    {/* Service header */}
+                    <div className="bg-gray-100 p-2 text-lg font-semibold border-t border-r">
+                      {serviceData.service.name} - {serviceData.service.time}
+                    </div>
+                    
+                    {/* Service slots */}
+                    {Array.from({ length: serviceData.service.positions }).map((_, positionIndex) => (
+                      <div key={`${serviceData.service.id}-position-${positionIndex + 1}`} className="border-t border-r p-1">
+                        {renderPositionCell(day.date, serviceData.service.id, positionIndex + 1)}
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ));
+              })}
             </div>
           </CardContent>
         </Card>
@@ -211,10 +239,10 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
 
   // Function to render the day-by-day calendar view (for small mobile screens)
   const renderDayCalendar = () => {
-    // Only display Sundays for simplicity in the day view
-    const sundays = calendarData.filter(day => day.date.getDay() === 0);
+    // Only display days with services for simplicity in the day view
+    const daysWithServices = calendarData.filter(day => day.services.length > 0);
     
-    return sundays.map((day, dayIndex) => (
+    return daysWithServices.map((day, dayIndex) => (
       <Card key={`day-${dayIndex}`} className="mb-6">
         <CardContent>
           <div className="calendar-header text-center p-2 text-xl">

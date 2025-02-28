@@ -2,6 +2,7 @@
 import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { getCalendarServiceTimes, ServiceTime, getDailyServiceTimes } from "./calendarManagement";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface Minister {
   id: string;
@@ -54,7 +55,9 @@ let MINISTER_SLOTS: MinisterSlot[] = [];
 
 // Initialize slots for the next 4 weeks
 export const initializeSlots = () => {
+  // Clear existing slots
   MINISTER_SLOTS = [];
+  
   const today = new Date();
   const startDate = startOfWeek(today, { weekStartsOn: 0 }); // Sunday start
   const serviceTimes = getCalendarServiceTimes();
@@ -70,7 +73,7 @@ export const initializeSlots = () => {
           MINISTER_SLOTS.push({
             id: `slot-${date.toISOString()}-${serviceTime.id}-${position}`,
             serviceId: serviceTime.id,
-            date: date,
+            date: new Date(date), // Ensure we have a proper Date object
             position: position,
           });
         }
@@ -82,7 +85,7 @@ export const initializeSlots = () => {
           MINISTER_SLOTS.push({
             id: `slot-${date.toISOString()}-${service.id}-${position}`,
             serviceId: service.id,
-            date: date,
+            date: new Date(date), // Ensure we have a proper Date object
             position: position,
           });
         }
@@ -90,7 +93,8 @@ export const initializeSlots = () => {
     }
   }
   
-  // Add some example assignments
+  // Add some example assignments (commented out for clarity)
+  /*
   if (MINISTER_SLOTS.length > 0) {
     MINISTER_SLOTS[0].ministerId = "1";
     MINISTER_SLOTS[0].ministerName = "Giovanni Bianchi";
@@ -100,12 +104,16 @@ export const initializeSlots = () => {
       MINISTER_SLOTS[2].ministerName = "Maria Rossi";
     }
   }
+  */
   
   return MINISTER_SLOTS;
 };
 
 // Get calendar data for a specific date range
 export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] => {
+  // Force slots to be initialized/re-initialized
+  initializeSlots();
+  
   const result: DayData[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -118,7 +126,7 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
     date.setHours(0, 0, 0, 0);
     
     const dayData: DayData = {
-      date,
+      date: new Date(date), // Ensure we have a proper Date object
       isToday: date.getTime() === today.getTime(),
       isCurrentMonth: date.getMonth() === today.getMonth(),
       services: [],
@@ -137,16 +145,39 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
           positions: serviceTime.positions
         };
         
+        // Find slots for this service and day
         const slotsForService = MINISTER_SLOTS.filter(
           slot => 
             slot.serviceId === serviceTime.id && 
-            slot.date.getTime() === date.getTime()
+            isSameDay(slot.date, date)
         );
         
-        dayData.services.push({
-          service: serviceObj,
-          slots: slotsForService,
-        });
+        // If no slots found, create them
+        if (slotsForService.length === 0) {
+          const newSlots: MinisterSlot[] = [];
+          
+          for (let position = 1; position <= serviceTime.positions; position++) {
+            newSlots.push({
+              id: `slot-${date.toISOString()}-${serviceTime.id}-${position}`,
+              serviceId: serviceTime.id,
+              date: new Date(date),
+              position: position,
+            });
+          }
+          
+          // Add the new slots to the global slots array
+          MINISTER_SLOTS.push(...newSlots);
+          
+          dayData.services.push({
+            service: serviceObj,
+            slots: newSlots,
+          });
+        } else {
+          dayData.services.push({
+            service: serviceObj,
+            slots: slotsForService,
+          });
+        }
       });
     } else if (getDay(date) === 0) {
       // Fallback to default services for Sundays if no specific services defined
@@ -154,7 +185,7 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
         const slotsForService = MINISTER_SLOTS.filter(
           slot => 
             slot.serviceId === service.id && 
-            slot.date.getTime() === date.getTime()
+            isSameDay(slot.date, date)
         );
         
         dayData.services.push({
@@ -170,17 +201,27 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
   return result;
 };
 
+// Helper function to compare dates without time
+function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+}
+
 // Check if a minister is already assigned to any position in a service on a date
 export const isMinisterAssignedToService = (
   ministerId: string, 
   serviceId: string, 
   date: Date
 ): boolean => {
+  date = new Date(date);
   date.setHours(0, 0, 0, 0);
   return MINISTER_SLOTS.some(
     slot => 
       slot.serviceId === serviceId && 
-      slot.date.getTime() === date.getTime() &&
+      isSameDay(slot.date, date) &&
       slot.ministerId === ministerId
   );
 };

@@ -1,10 +1,11 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import Calendar from "@/components/Calendar";
+import { initializeSlots } from "@/utils/calendarHelpers";
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated, logout, isAdmin } = useAuth();
@@ -14,6 +15,12 @@ const Dashboard: React.FC = () => {
   if (!isAuthenticated) {
     return <Navigate to="/" />;
   }
+
+  // When Dashboard loads, make sure calendar data is initialized
+  useEffect(() => {
+    // Initialize calendar slots to ensure they're up to date
+    initializeSlots();
+  }, []);
 
   const handleLogout = () => {
     logout();
