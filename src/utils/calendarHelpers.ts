@@ -1,4 +1,5 @@
-import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
+
+import { addDays, format, getDay, subDays, startOfWeek as dateStartOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
 import { getCalendarServiceTimes, ServiceTime, getDailyServiceTimes } from "./calendarManagement";
 import { v4 as uuidv4 } from 'uuid';
@@ -114,7 +115,7 @@ export const initializeSlots = async (): Promise<MinisterSlot[]> => {
     
     const today = new Date();
     // Use Monday as the start of the week
-    const startDate = startOfWeek(today, { weekStartsOn: 1 }); 
+    const startDate = dateStartOfWeek(today, { weekStartsOn: 1 }); 
     const serviceTimes = await getCalendarServiceTimes();
     
     // Create slots for 4 weeks if they don't exist
@@ -436,10 +437,10 @@ export const getNextWeek = (currentStart: Date): Date => {
   return addDays(currentStart, 7);
 };
 
-// Initialize the minister slots
-export function startOfWeek(date: Date, options: { weekStartsOn: number }): Date {
+// Helper function for calculating the start of a week
+export function getWeekStart(date: Date, weekStartsOn: number): Date {
   const day = date.getDay();
-  const diff = (day < options.weekStartsOn ? 7 : 0) + day - options.weekStartsOn;
+  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() - diff);
 }
 

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { DayData } from "@/utils/calendarHelpers";
+import { DayData, getWeekStart } from "@/utils/calendarHelpers";
 import { format, endOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
 import MinisterCell from "./MinisterCell";
@@ -34,7 +34,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
       {weeks.map((week, weekIndex) => {
         // Get Monday of this week for the week header
         const mondayOfWeek = week.find(day => day.date.getDay() === 1)?.date || 
-                          startOfWeek(week[0].date, { weekStartsOn: 1 });
+                          getWeekStart(week[0].date, 1);
         
         return (
           <Card key={`week-${weekIndex}`} className="mb-8 overflow-hidden print:mb-4 print:break-inside-avoid">
@@ -101,12 +101,5 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
     </>
   );
 };
-
-// Helper function to get the start of week
-function startOfWeek(date: Date, options: { weekStartsOn: number }): Date {
-  const day = date.getDay();
-  const diff = (day < options.weekStartsOn ? 7 : 0) + day - options.weekStartsOn;
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - diff);
-}
 
 export default CalendarGrid;
