@@ -26,13 +26,26 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
   const [selectedSlot, setSelectedSlot] = useState<MinisterSlot | null>(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "day">("grid");
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
 
   // Function to load calendar data
-  const loadCalendarData = () => {
-    const data = getCalendarData(startDate, 21); // Show 3 weeks
-    setCalendarData(data);
+  const loadCalendarData = async () => {
+    setLoading(true);
+    try {
+      const data = await getCalendarData(startDate, 21); // Show 3 weeks
+      setCalendarData(data);
+    } catch (error) {
+      console.error("Error loading calendar data:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante il caricamento del calendario",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Initialize calendar data on component mount and when start date changes
@@ -305,6 +318,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
           onClick={handlePreviousWeek}
           className="text-xl"
           variant="outline"
+          disabled={loading}
         >
           Settimana Precedente
         </Button>
@@ -312,6 +326,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
           onClick={handleNextWeek}
           className="text-xl"
           variant="outline"
+          disabled={loading}
         >
           Settimana Successiva
         </Button>
@@ -319,6 +334,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
           onClick={toggleViewMode}
           className="text-xl md:hidden"
           variant="outline"
+          disabled={loading}
         >
           {viewMode === "grid" ? "Vista Giornaliera" : "Vista Griglia"}
         </Button>
@@ -326,6 +342,7 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
           onClick={handlePrintCalendar}
           className="text-xl"
           variant="outline"
+          disabled={loading}
         >
           <Printer className="mr-2 h-5 w-5" /> Stampa
         </Button>
@@ -344,7 +361,14 @@ const Calendar: React.FC<{ filterOwnSchedule?: boolean }> = ({ filterOwnSchedule
     <div className="p-4">
       {renderCalendarHeader()}
       
-      {filterOwnSchedule && !hasMyScheduleData ? (
+      {loading ? (
+        <div className="text-center p-8 border rounded-lg bg-gray-50">
+          <h3 className="text-2xl font-bold mb-4">Caricamento Calendario</h3>
+          <p className="text-xl">
+            Stiamo caricando i dati del calendario, attendere prego...
+          </p>
+        </div>
+      ) : filterOwnSchedule && !hasMyScheduleData ? (
         <div className="text-center p-8 border rounded-lg bg-gray-50">
           <h3 className="text-2xl font-bold mb-4">Nessun Servizio Programmato</h3>
           <p className="text-xl">

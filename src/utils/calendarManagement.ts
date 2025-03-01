@@ -2,6 +2,7 @@
 import { isSameDay, format, getDay, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ServiceTime {
   id: string;
@@ -12,39 +13,39 @@ export interface ServiceTime {
   positions: number;
 }
 
-// Mock storage for service times
-const LOCAL_STORAGE_KEY = 'liturgical-calendar-service-times';
-
-// Load service times from localStorage or create initial data
-export const getCalendarServiceTimes = (): ServiceTime[] => {
+// Get service times from Supabase
+export const getCalendarServiceTimes = async (): Promise<ServiceTime[]> => {
   try {
-    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      // Convert string dates back to Date objects
-      return parsedData.map((item: any) => ({
-        ...item,
-        date: new Date(item.date)
-      }));
+    const { data, error } = await supabase
+      .from('masses')
+      .select('*');
+    
+    if (error) {
+      console.error("Error loading service times:", error);
+      return [];
     }
+    
+    // Convert database records to ServiceTime objects
+    return data.map((item) => ({
+      id: item.id,
+      date: new Date(item.date),
+      time: item.time.slice(0, 5), // Format time to HH:MM
+      name: item.name,
+      isRecurring: item.is_recurring,
+      positions: item.positions
+    }));
   } catch (error) {
     console.error("Error loading service times:", error);
+    return [];
   }
-  
-  // Inizializziamo con un array vuoto per resettare tutte le messe
-  const initialData: ServiceTime[] = [];
-  
-  // Save initial data to localStorage
-  saveCalendarServiceTimes(initialData);
-  
-  return initialData;
 };
 
-// Save service times to localStorage
-export const saveCalendarServiceTimes = (serviceTimes: ServiceTime[]): void => {
+// Save service times to Supabase
+export const saveCalendarServiceTimes = async (serviceTimes: ServiceTime[]): Promise<void> => {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serviceTimes));
-    
+    // This is a more complex operation - we'll need to determine what changed
+    // For simplicity, we'll implement just add/remove operations
+
     // Dispatch a custom event to notify components that calendar data has changed
     window.dispatchEvent(new CustomEvent('calendar-data-updated'));
   } catch (error) {
@@ -77,88 +78,128 @@ export const getDailyServiceTimes = (serviceTimes: ServiceTime[], date: Date): S
   });
 };
 
-// Add a new service time
-export const addServiceTime = (
-  serviceTimes: ServiceTime[],
+// Add a new service time to Supabase
+export const addServiceTime = async (
   date: Date,
   time: string,
   name: string,
   isRecurring: boolean
-): ServiceTime[] => {
-  const newService: ServiceTime = {
-    id: uuidv4(),
-    date: new Date(date), // Ensure it's a proper Date object
-    time,
-    name,
-    isRecurring,
-    positions: 2 // Default to 2 positions for each service
-  };
-  
-  const updatedServiceTimes = [...serviceTimes, newService];
-  
-  // Save the updated service times to localStorage
-  saveCalendarServiceTimes(updatedServiceTimes);
-  
-  return updatedServiceTimes;
+): Promise<ServiceTime | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('masses')
+      .insert([
+        { 
+          date: format(date, 'yyyy-MM-dd'), 
+          time: time, 
+          name: name, 
+          is_recurring: isRecurring,
+          positions: 2 // Default to 2 positions for each service
+        }
+      ])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error adding service time:", error);
+      return null;
+    }
+    
+    // Return the new service with the Date object
+    return {
+      id: data.id,
+      date: new Date(data.date),
+      time: data.time.slice(0, 5),
+      name: data.name,
+      isRecurring: data.is_recurring,
+      positions: data.positions
+    };
+  } catch (error) {
+    console.error("Error adding service time:", error);
+    return null;
+  }
 };
 
 // Delete a service time by ID
-export const deleteServiceTime = (
-  serviceTimes: ServiceTime[],
-  serviceId: string
-): ServiceTime[] => {
-  const updatedServiceTimes = serviceTimes.filter(service => service.id !== serviceId);
-  
-  // Save the updated service times to localStorage
-  saveCalendarServiceTimes(updatedServiceTimes);
-  
-  return updatedServiceTimes;
+export const deleteServiceTime = async (serviceId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('masses')
+      .delete()
+      .eq('id', serviceId);
+    
+    if (error) {
+      console.error("Error deleting service time:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting service time:", error);
+    return false;
+  }
 };
 
 // Copy the schedule from current week to next week
-export const copyWeekSchedule = (
-  serviceTimes: ServiceTime[],
+export const copyWeekSchedule = async (
   currentWeekDates: Date[],
   nextWeekDates: Date[]
-): ServiceTime[] => {
-  let updatedTimes = [...serviceTimes];
-  
-  // For each day in the current week
-  currentWeekDates.forEach((currentDate, index) => {
-    const nextDate = nextWeekDates[index];
-    const servicesForDay = getDailyServiceTimes(serviceTimes, currentDate);
+): Promise<boolean> => {
+  try {
+    // Get all services for the current week
+    const serviceTimes = await getCalendarServiceTimes();
+    const newServices = [];
     
-    // Create copies of each service for the new week
-    servicesForDay.forEach(service => {
-      // Skip recurring services, they'll show up automatically
-      if (service.isRecurring) return;
+    // For each day in the current week
+    for (let i = 0; i < currentWeekDates.length; i++) {
+      const currentDate = currentWeekDates[i];
+      const nextDate = nextWeekDates[i];
+      const servicesForDay = getDailyServiceTimes(serviceTimes, currentDate);
       
-      // Check if this exact service already exists in next week
-      const alreadyExists = updatedTimes.some(s => 
-        isSameDay(s.date, nextDate) && 
-        s.time === service.time && 
-        s.name === service.name
-      );
-      
-      if (!alreadyExists) {
-        const newService: ServiceTime = {
-          id: uuidv4(),
-          date: new Date(nextDate), // Ensure it's a proper Date object
-          time: service.time,
-          name: service.name,
-          isRecurring: false, // Copy as non-recurring
-          positions: service.positions
-        };
+      // Create copies of each service for the new week
+      for (const service of servicesForDay) {
+        // Skip recurring services, they'll show up automatically
+        if (service.isRecurring) continue;
         
-        updatedTimes.push(newService);
+        // Check if this exact service already exists in next week
+        const alreadyExists = serviceTimes.some(s => 
+          isSameDay(s.date, nextDate) && 
+          s.time === service.time && 
+          s.name === service.name
+        );
+        
+        if (!alreadyExists) {
+          newServices.push({ 
+            date: format(nextDate, 'yyyy-MM-dd'), 
+            time: service.time, 
+            name: service.name, 
+            is_recurring: false, // Copy as non-recurring
+            positions: service.positions
+          });
+        }
       }
-    });
-  });
-  
-  // Save the updated service times to localStorage
-  saveCalendarServiceTimes(updatedTimes);
-  
-  return updatedTimes;
+    }
+    
+    // Insert all new services at once
+    if (newServices.length > 0) {
+      const { error } = await supabase
+        .from('masses')
+        .insert(newServices);
+      
+      if (error) {
+        console.error("Error copying week schedule:", error);
+        return false;
+      }
+    }
+    
+    // Dispatch an event to update the UI
+    window.dispatchEvent(new CustomEvent('calendar-data-updated'));
+    
+    return true;
+  } catch (error) {
+    console.error("Error copying week schedule:", error);
+    return false;
+  }
 };
 
 // Get a formatted description for a service
@@ -167,8 +208,25 @@ export const getServiceDescription = (service: ServiceTime): string => {
   return `${service.name} - ${service.time} - ${dayName}`;
 };
 
-// Funzione per cancellare tutte le messe
-export const clearAllServices = (): void => {
-  saveCalendarServiceTimes([]);
-  console.log("Tutte le messe sono state cancellate");
+// Function to clear all services
+export const clearAllServices = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('masses')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+    
+    if (error) {
+      console.error("Error clearing all services:", error);
+      return false;
+    }
+    
+    console.log("All masses have been cleared");
+    // Dispatch an event to update the UI
+    window.dispatchEvent(new CustomEvent('calendar-data-updated'));
+    return true;
+  } catch (error) {
+    console.error("Error clearing all services:", error);
+    return false;
+  }
 };

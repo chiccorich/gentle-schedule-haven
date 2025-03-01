@@ -32,6 +32,7 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [loading, setLoading] = React.useState(false);
   
   if (!user) {
     onClose();
@@ -42,45 +43,71 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
   const serviceTime = SERVICES.find(s => s.id === slot.serviceId)?.time || "";
   const isUserAssigned = slot.ministerId === user.id;
   
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!user) return;
     
-    const success = assignMinister(slot.id, user.id, user.name);
-    
-    if (success) {
+    setLoading(true);
+    try {
+      const success = await assignMinister(slot.id, user.id, user.name);
+      
+      if (success) {
+        toast({
+          title: "Iscrizione Confermata",
+          description: `Sei stato assegnato alla ${serviceName} del ${formatDate(slot.date)}`
+        });
+        onComplete();
+      } else {
+        toast({
+          title: "Iscrizione Fallita",
+          description: "Potresti essere già assegnato ad un altro servizio in questa celebrazione",
+          variant: "destructive"
+        });
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error during signup:", error);
       toast({
-        title: "Iscrizione Confermata",
-        description: `Sei stato assegnato alla ${serviceName} del ${formatDate(slot.date)}`
-      });
-      onComplete();
-    } else {
-      toast({
-        title: "Iscrizione Fallita",
-        description: "Potresti essere già assegnato ad un altro servizio in questa celebrazione",
+        title: "Errore",
+        description: "Si è verificato un errore durante l'iscrizione",
         variant: "destructive"
       });
       onClose();
+    } finally {
+      setLoading(false);
     }
   };
   
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!user || !isUserAssigned) return;
     
-    const success = removeMinister(slot.id);
-    
-    if (success) {
-      toast({
-        title: "Servizio Cancellato",
-        description: `Sei stato rimosso dalla ${serviceName} del ${formatDate(slot.date)}`
-      });
-      onComplete();
-    } else {
+    setLoading(true);
+    try {
+      const success = await removeMinister(slot.id);
+      
+      if (success) {
+        toast({
+          title: "Servizio Cancellato",
+          description: `Sei stato rimosso dalla ${serviceName} del ${formatDate(slot.date)}`
+        });
+        onComplete();
+      } else {
+        toast({
+          title: "Errore",
+          description: "Impossibile cancellare il tuo servizio",
+          variant: "destructive"
+        });
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error during cancellation:", error);
       toast({
         title: "Errore",
-        description: "Impossibile cancellare il tuo servizio",
+        description: "Si è verificato un errore durante la cancellazione",
         variant: "destructive"
       });
       onClose();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -107,7 +134,7 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
         </div>
         
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
-          <Button variant="outline" onClick={onClose} className="text-xl">
+          <Button variant="outline" onClick={onClose} className="text-xl" disabled={loading}>
             Annulla
           </Button>
           
@@ -116,6 +143,7 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
               variant="destructive" 
               onClick={handleCancel}
               className="text-xl"
+              disabled={loading}
             >
               Rimuovi Il Mio Servizio
             </Button>
@@ -123,6 +151,7 @@ export const MinisterSignup: React.FC<MinisterSignupProps> = ({
             <Button 
               onClick={handleSignup}
               className="text-xl"
+              disabled={loading}
             >
               Conferma Disponibilità
             </Button>

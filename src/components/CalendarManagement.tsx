@@ -34,7 +34,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   getCalendarServiceTimes, 
-  saveCalendarServiceTimes, 
   ServiceTime, 
   copyWeekSchedule,
   deleteServiceTime,
@@ -49,6 +48,7 @@ const CalendarManagement: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   // Initialize week dates when current date changes
@@ -59,9 +59,39 @@ const CalendarManagement: React.FC = () => {
     setWeekDates(dates);
     
     // Load service times
-    const times = getCalendarServiceTimes();
-    setServiceTimes(times);
+    loadServiceTimes();
   }, [currentDate]);
+
+  // Function to load service times from Supabase
+  const loadServiceTimes = async () => {
+    setLoading(true);
+    try {
+      const times = await getCalendarServiceTimes();
+      setServiceTimes(times);
+    } catch (error) {
+      console.error("Error loading service times:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile caricare gli orari delle celebrazioni",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Listen for calendar data updates
+  useEffect(() => {
+    const handleCalendarDataUpdated = () => {
+      loadServiceTimes();
+    };
+
+    window.addEventListener('calendar-data-updated', handleCalendarDataUpdated);
+    
+    return () => {
+      window.removeEventListener('calendar-data-updated', handleCalendarDataUpdated);
+    };
+  }, []);
 
   const handlePreviousWeek = () => {
     setCurrentDate(prevDate => addDays(prevDate, -7));
@@ -72,24 +102,46 @@ const CalendarManagement: React.FC = () => {
   };
 
   const handleSaveChanges = () => {
-    saveCalendarServiceTimes(serviceTimes);
+    // With Supabase, changes are saved immediately so this is now just a visual confirmation
     toast({
       title: "Modifiche Salvate",
       description: "Le modifiche al calendario sono state salvate con successo"
     });
   };
 
-  const handleCopyWeek = () => {
-    const nextWeekStart = addWeeks(startOfWeek(currentDate, { weekStartsOn: 1 }), 1);
-    const nextWeekDates = Array.from({ length: 7 }, (_, i) => addDays(nextWeekStart, i));
-    
-    const updatedTimes = copyWeekSchedule(serviceTimes, weekDates, nextWeekDates);
-    setServiceTimes(updatedTimes);
-    
-    toast({
-      title: "Settimana Copiata",
-      description: "L'orario di questa settimana è stato copiato nella settimana successiva"
-    });
+  const handleCopyWeek = async () => {
+    setLoading(true);
+    try {
+      const nextWeekStart = addWeeks(startOfWeek(currentDate, { weekStartsOn: 1 }), 1);
+      const nextWeekDates = Array.from({ length: 7 }, (_, i) => addDays(nextWeekStart, i));
+      
+      const success = await copyWeekSchedule(weekDates, nextWeekDates);
+      
+      if (success) {
+        toast({
+          title: "Settimana Copiata",
+          description: "L'orario di questa settimana è stato copiato nella settimana successiva"
+        });
+        
+        // Reload service times
+        await loadServiceTimes();
+      } else {
+        toast({
+          title: "Errore",
+          description: "Impossibile copiare la settimana",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error copying week:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante la copia della settimana",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddService = (day: Date) => {
@@ -97,32 +149,72 @@ const CalendarManagement: React.FC = () => {
     setShowAddDialog(true);
   };
 
-  const handleDeleteService = (serviceId: string) => {
-    setServiceTimes(deleteServiceTime(serviceTimes, serviceId));
-    toast({
-      title: "Celebrazione Rimossa",
-      description: "La celebrazione è stata rimossa dal calendario"
-    });
+  const handleDeleteService = async (serviceId: string) => {
+    setLoading(true);
+    try {
+      const success = await deleteServiceTime(serviceId);
+      
+      if (success) {
+        // Update local state
+        setServiceTimes(prev => prev.filter(service => service.id !== serviceId));
+        
+        toast({
+          title: "Celebrazione Rimossa",
+          description: "La celebrazione è stata rimossa dal calendario"
+        });
+      } else {
+        toast({
+          title: "Errore",
+          description: "Impossibile rimuovere la celebrazione",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante la rimozione della celebrazione",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleConfirmAddService = (time: string, name: string, isRecurring: boolean) => {
+  const handleConfirmAddService = async (time: string, name: string, isRecurring: boolean) => {
     if (!selectedDay) return;
     
-    const newServiceTimes = addServiceTime(
-      serviceTimes, 
-      selectedDay, 
-      time, 
-      name, 
-      isRecurring
-    );
-    
-    setServiceTimes(newServiceTimes);
-    setShowAddDialog(false);
-    
-    toast({
-      title: "Celebrazione Aggiunta",
-      description: `${name} è stata aggiunta per ${format(selectedDay, "EEEE", { locale: it })}`
-    });
+    setLoading(true);
+    try {
+      const newService = await addServiceTime(selectedDay, time, name, isRecurring);
+      
+      if (newService) {
+        // Update local state
+        setServiceTimes(prev => [...prev, newService]);
+        
+        setShowAddDialog(false);
+        
+        toast({
+          title: "Celebrazione Aggiunta",
+          description: `${name} è stata aggiunta per ${format(selectedDay, "EEEE", { locale: it })}`
+        });
+      } else {
+        toast({
+          title: "Errore",
+          description: "Impossibile aggiungere la celebrazione",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error adding service:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante l'aggiunta della celebrazione",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Format dates for the week header
@@ -163,6 +255,7 @@ const CalendarManagement: React.FC = () => {
                 onClick={handlePreviousWeek}
                 className="text-lg"
                 variant="outline"
+                disabled={loading}
               >
                 Settimana Precedente
               </Button>
@@ -170,6 +263,7 @@ const CalendarManagement: React.FC = () => {
                 onClick={handleNextWeek}
                 className="text-lg"
                 variant="outline"
+                disabled={loading}
               >
                 Settimana Successiva
               </Button>
@@ -177,6 +271,7 @@ const CalendarManagement: React.FC = () => {
                 onClick={handleCopyWeek}
                 className="text-lg"
                 variant="outline"
+                disabled={loading}
               >
                 Copia nella Prossima Settimana
               </Button>
@@ -184,13 +279,18 @@ const CalendarManagement: React.FC = () => {
                 onClick={() => setPreviewMode(!previewMode)}
                 className="text-lg"
                 variant={previewMode ? "default" : "outline"}
+                disabled={loading}
               >
                 {previewMode ? "Chiudi Anteprima" : "Anteprima Modifiche"}
               </Button>
             </div>
           </div>
 
-          {previewMode ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-xl">Caricamento in corso...</div>
+            </div>
+          ) : previewMode ? (
             <div className="border rounded-md p-4 bg-gray-50">
               <h3 className="text-xl font-bold mb-4 text-center">Anteprima Calendario</h3>
               <div className="grid grid-cols-7 gap-2">
@@ -275,6 +375,7 @@ const CalendarManagement: React.FC = () => {
                                   size="sm" 
                                   onClick={() => handleDeleteService(service.id)}
                                   className="ml-2"
+                                  disabled={loading}
                                 >
                                   Rimuovi
                                 </Button>
@@ -288,6 +389,7 @@ const CalendarManagement: React.FC = () => {
                           onClick={() => handleAddService(date)}
                           variant="outline"
                           className="whitespace-nowrap"
+                          disabled={loading}
                         >
                           Aggiungi Celebrazione
                         </Button>
@@ -304,6 +406,7 @@ const CalendarManagement: React.FC = () => {
               onClick={handleSaveChanges} 
               size="lg" 
               className="text-xl"
+              disabled={loading}
             >
               Salva Modifiche
             </Button>
@@ -324,6 +427,7 @@ const CalendarManagement: React.FC = () => {
           <AddServiceForm 
             onSubmit={handleConfirmAddService} 
             onClose={() => setShowAddDialog(false)} 
+            loading={loading}
           />
         </DialogContent>
       </Dialog>
@@ -335,9 +439,10 @@ const CalendarManagement: React.FC = () => {
 interface AddServiceFormProps {
   onSubmit: (time: string, name: string, isRecurring: boolean) => void;
   onClose: () => void;
+  loading: boolean;
 }
 
-const AddServiceForm: React.FC<AddServiceFormProps> = ({ onSubmit, onClose }) => {
+const AddServiceForm: React.FC<AddServiceFormProps> = ({ onSubmit, onClose, loading }) => {
   const [time, setTime] = useState('');
   const [name, setName] = useState('Santa Messa');
   const [isRecurring, setIsRecurring] = useState(false);
@@ -379,7 +484,7 @@ const AddServiceForm: React.FC<AddServiceFormProps> = ({ onSubmit, onClose }) =>
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="service-name" className="text-lg">Nome Celebrazione</Label>
-        <Select value={name} onValueChange={setName}>
+        <Select value={name} onValueChange={setName} disabled={loading}>
           <SelectTrigger id="service-name">
             <SelectValue placeholder="Seleziona tipo di celebrazione" />
           </SelectTrigger>
@@ -393,7 +498,7 @@ const AddServiceForm: React.FC<AddServiceFormProps> = ({ onSubmit, onClose }) =>
       
       <div className="space-y-2">
         <Label htmlFor="service-time" className="text-lg">Orario</Label>
-        <Select value={time} onValueChange={setTime}>
+        <Select value={time} onValueChange={setTime} disabled={loading}>
           <SelectTrigger id="service-time">
             <SelectValue placeholder="Seleziona orario" />
           </SelectTrigger>
@@ -410,6 +515,7 @@ const AddServiceForm: React.FC<AddServiceFormProps> = ({ onSubmit, onClose }) =>
           id="recurring" 
           checked={isRecurring} 
           onCheckedChange={(checked) => setIsRecurring(checked === true)}
+          disabled={loading}
         />
         <Label htmlFor="recurring" className="text-lg">
           Ripeti ogni settimana nello stesso giorno
@@ -417,10 +523,10 @@ const AddServiceForm: React.FC<AddServiceFormProps> = ({ onSubmit, onClose }) =>
       </div>
       
       <DialogFooter className="mt-6">
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
           Annulla
         </Button>
-        <Button type="submit">
+        <Button type="submit" disabled={loading}>
           Aggiungi Celebrazione
         </Button>
       </DialogFooter>

@@ -1,7 +1,9 @@
+
 import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { getCalendarServiceTimes, ServiceTime, getDailyServiceTimes } from "./calendarManagement";
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Minister {
   id: string;
@@ -40,168 +42,279 @@ export const SERVICES: Service[] = [
   { id: "2", name: "Santa Messa Serale", time: "18:00", positions: 2 },
 ];
 
-// Mock ministers data
-export const MINISTERS: Minister[] = [
-  { id: "1", name: "Giovanni Bianchi" },
-  { id: "2", name: "Maria Rossi" },
-  { id: "3", name: "Roberto Verdi" },
-  { id: "4", name: "Patrizia Neri" },
-  { id: "5", name: "Michele Russo" },
-];
+// Ministers data will be fetched from Supabase
+export let MINISTERS: Minister[] = [];
 
-// Mock minister slots data
+// Minister slots data will be fetched from Supabase
 let MINISTER_SLOTS: MinisterSlot[] = [];
 
-// Initialize slots for the next 4 weeks
-export const initializeSlots = () => {
-  // Clear existing slots
-  MINISTER_SLOTS = [];
-  
-  const today = new Date();
-  // Use Monday as the start of the week
-  const startDate = startOfWeek(today, { weekStartsOn: 1 }); 
-  const serviceTimes = getCalendarServiceTimes();
-  
-  // Create slots for 4 weeks
-  for (let i = 0; i < 28; i++) {
-    const date = addDays(startDate, i);
-    const servicesForDay = getDailyServiceTimes(serviceTimes, date);
+// Load ministers from Supabase
+export const loadMinisters = async (): Promise<Minister[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('ministers')
+      .select('*');
     
-    if (servicesForDay.length > 0) {
-      servicesForDay.forEach(serviceTime => {
-        for (let position = 1; position <= serviceTime.positions; position++) {
-          MINISTER_SLOTS.push({
-            id: `slot-${date.toISOString()}-${serviceTime.id}-${position}`,
-            serviceId: serviceTime.id,
-            date: new Date(date), // Ensure we have a proper Date object
-            position: position,
-          });
-        }
-      });
-    } else if (getDay(date) === 0) {
-      // Fallback to default services for Sundays if no specific services defined
-      SERVICES.forEach(service => {
-        for (let position = 1; position <= service.positions; position++) {
-          MINISTER_SLOTS.push({
-            id: `slot-${date.toISOString()}-${service.id}-${position}`,
-            serviceId: service.id,
-            date: new Date(date), // Ensure we have a proper Date object
-            position: position,
-          });
-        }
-      });
+    if (error) {
+      console.error("Error loading ministers:", error);
+      return [];
     }
+    
+    MINISTERS = data.map(minister => ({
+      id: minister.id,
+      name: minister.name
+    }));
+    
+    return MINISTERS;
+  } catch (error) {
+    console.error("Error loading ministers:", error);
+    return [];
   }
-  
-  return MINISTER_SLOTS;
+};
+
+// Load minister slots from Supabase
+export const loadMinisterSlots = async (): Promise<MinisterSlot[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('minister_slots')
+      .select(`
+        id,
+        mass_id,
+        minister_id,
+        position,
+        date,
+        ministers(name)
+      `);
+    
+    if (error) {
+      console.error("Error loading minister slots:", error);
+      return [];
+    }
+    
+    MINISTER_SLOTS = data.map(slot => ({
+      id: slot.id,
+      serviceId: slot.mass_id,
+      date: new Date(slot.date),
+      position: slot.position,
+      ministerId: slot.minister_id,
+      ministerName: slot.ministers?.name
+    }));
+    
+    return MINISTER_SLOTS;
+  } catch (error) {
+    console.error("Error loading minister slots:", error);
+    return [];
+  }
+};
+
+// Initialize slots for the next 4 weeks
+export const initializeSlots = async (): Promise<MinisterSlot[]> => {
+  try {
+    // Load existing slots first
+    await loadMinisterSlots();
+    
+    const today = new Date();
+    // Use Monday as the start of the week
+    const startDate = startOfWeek(today, { weekStartsOn: 1 }); 
+    const serviceTimes = await getCalendarServiceTimes();
+    
+    // Create slots for 4 weeks if they don't exist
+    for (let i = 0; i < 28; i++) {
+      const date = addDays(startDate, i);
+      const servicesForDay = getDailyServiceTimes(serviceTimes, date);
+      
+      if (servicesForDay.length > 0) {
+        for (const serviceTime of servicesForDay) {
+          for (let position = 1; position <= serviceTime.positions; position++) {
+            // Check if slot already exists
+            const existingSlot = MINISTER_SLOTS.find(slot => 
+              isSameDay(slot.date, date) && 
+              slot.serviceId === serviceTime.id && 
+              slot.position === position
+            );
+            
+            if (!existingSlot) {
+              // Create new slot in Supabase
+              const { data, error } = await supabase
+                .from('minister_slots')
+                .insert([{
+                  mass_id: serviceTime.id,
+                  date: format(date, 'yyyy-MM-dd'),
+                  position: position
+                }])
+                .select()
+                .single();
+              
+              if (error) {
+                console.error("Error creating minister slot:", error);
+                continue;
+              }
+              
+              // Add to local array
+              MINISTER_SLOTS.push({
+                id: data.id,
+                serviceId: data.mass_id,
+                date: new Date(data.date),
+                position: data.position,
+                ministerId: data.minister_id,
+                ministerName: undefined
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    return MINISTER_SLOTS;
+  } catch (error) {
+    console.error("Error initializing slots:", error);
+    return [];
+  }
 };
 
 // Get calendar data for a specific date range
-export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] => {
-  // Force slots to be initialized/re-initialized
-  initializeSlots();
-  
-  const result: DayData[] = [];
-  const today = new Date();
-  // Reset time portion to ensure correct day comparison
-  today.setHours(0, 0, 0, 0);
-  
-  // Get the service times from the calendar management
-  const serviceTimes = getCalendarServiceTimes();
-  
-  for (let i = 0; i < numberOfDays; i++) {
-    const date = addDays(startDate, i);
+export const getCalendarData = async (startDate: Date, numberOfDays = 21): Promise<DayData[]> => {
+  try {
+    // Force slots to be initialized/re-initialized
+    await initializeSlots();
+    
+    const result: DayData[] = [];
+    const today = new Date();
     // Reset time portion to ensure correct day comparison
-    date.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
     
-    const dayData: DayData = {
-      date: new Date(date), // Ensure we have a proper Date object
-      isToday: isSameDay(date, today),
-      isCurrentMonth: date.getMonth() === today.getMonth(),
-      services: [],
-    };
+    // Get the service times from the calendar management
+    const serviceTimes = await getCalendarServiceTimes();
     
-    // Get services for this specific day
-    const servicesForDay = getDailyServiceTimes(serviceTimes, date);
-    
-    if (servicesForDay.length > 0) {
-      // Use the services defined in calendar management
-      servicesForDay.forEach(serviceTime => {
-        const serviceObj: Service = {
-          id: serviceTime.id,
-          name: serviceTime.name,
-          time: serviceTime.time,
-          positions: serviceTime.positions
-        };
-        
-        // Find slots for this service and day
-        const slotsForService = MINISTER_SLOTS.filter(
-          slot => 
-            slot.serviceId === serviceTime.id && 
-            isSameDay(slot.date, date)
-        );
-        
-        // If no slots found, create them
-        if (slotsForService.length === 0) {
-          const newSlots: MinisterSlot[] = [];
+    for (let i = 0; i < numberOfDays; i++) {
+      const date = addDays(startDate, i);
+      // Reset time portion to ensure correct day comparison
+      date.setHours(0, 0, 0, 0);
+      
+      const dayData: DayData = {
+        date: new Date(date), // Ensure we have a proper Date object
+        isToday: isSameDay(date, today),
+        isCurrentMonth: date.getMonth() === today.getMonth(),
+        services: [],
+      };
+      
+      // Get services for this specific day
+      const servicesForDay = getDailyServiceTimes(serviceTimes, date);
+      
+      if (servicesForDay.length > 0) {
+        // Use the services defined in calendar management
+        for (const serviceTime of servicesForDay) {
+          const serviceObj: Service = {
+            id: serviceTime.id,
+            name: serviceTime.name,
+            time: serviceTime.time,
+            positions: serviceTime.positions
+          };
           
-          for (let position = 1; position <= serviceTime.positions; position++) {
-            newSlots.push({
-              id: `slot-${date.toISOString()}-${serviceTime.id}-${position}`,
-              serviceId: serviceTime.id,
-              date: new Date(date),
-              position: position,
+          // Find slots for this service and day
+          const slotsForService = MINISTER_SLOTS.filter(
+            slot => 
+              slot.serviceId === serviceTime.id && 
+              isSameDay(slot.date, date)
+          );
+          
+          // If no slots found, create them
+          if (slotsForService.length === 0) {
+            const newSlots: MinisterSlot[] = [];
+            
+            for (let position = 1; position <= serviceTime.positions; position++) {
+              // Create new slot in Supabase
+              const { data, error } = await supabase
+                .from('minister_slots')
+                .insert([{
+                  mass_id: serviceTime.id,
+                  date: format(date, 'yyyy-MM-dd'),
+                  position: position
+                }])
+                .select()
+                .single();
+              
+              if (error) {
+                console.error("Error creating minister slot:", error);
+                continue;
+              }
+              
+              const newSlot: MinisterSlot = {
+                id: data.id,
+                serviceId: data.mass_id,
+                date: new Date(data.date),
+                position: data.position,
+                ministerId: data.minister_id,
+                ministerName: undefined
+              };
+              
+              newSlots.push(newSlot);
+              MINISTER_SLOTS.push(newSlot);
+            }
+            
+            dayData.services.push({
+              service: serviceObj,
+              slots: newSlots,
+            });
+          } else {
+            dayData.services.push({
+              service: serviceObj,
+              slots: slotsForService,
             });
           }
-          
-          // Add the new slots to the global slots array
-          MINISTER_SLOTS.push(...newSlots);
+        }
+      } else if (getDay(date) === 0) {
+        // Fallback to default services for Sundays if no specific services defined
+        for (const service of SERVICES) {
+          const slotsForService = MINISTER_SLOTS.filter(
+            slot => 
+              slot.serviceId === service.id && 
+              isSameDay(slot.date, date)
+          );
           
           dayData.services.push({
-            service: serviceObj,
-            slots: newSlots,
-          });
-        } else {
-          dayData.services.push({
-            service: serviceObj,
+            service,
             slots: slotsForService,
           });
         }
-      });
-    } else if (getDay(date) === 0) {
-      // Fallback to default services for Sundays if no specific services defined
-      SERVICES.forEach(service => {
-        const slotsForService = MINISTER_SLOTS.filter(
-          slot => 
-            slot.serviceId === service.id && 
-            isSameDay(slot.date, date)
-        );
-        
-        dayData.services.push({
-          service,
-          slots: slotsForService,
-        });
-      });
+      }
+      
+      result.push(dayData);
     }
     
-    result.push(dayData);
+    return result;
+  } catch (error) {
+    console.error("Error getting calendar data:", error);
+    return [];
   }
-  
-  return result;
 };
 
-// Funzione per reimpostare i dati del calendario (resettando anche i ministri assegnati)
-export const resetCalendarData = () => {
-  // Svuota gli slot dei ministri
-  MINISTER_SLOTS = [];
-  
-  // Inizializza nuovamente gli slot (sarà un array vuoto perché abbiamo svuotato i dati in calendarManagement)
-  initializeSlots();
-  
-  // Dispatch event to update calendar UI
-  window.dispatchEvent(new CustomEvent('calendar-data-updated'));
-  
-  return MINISTER_SLOTS;
+// Function to reset the calendar data (also clearing assigned ministers)
+export const resetCalendarData = async (): Promise<boolean> => {
+  try {
+    // Clear all minister slots
+    const { error: slotsError } = await supabase
+      .from('minister_slots')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+    
+    if (slotsError) {
+      console.error("Error clearing minister slots:", slotsError);
+      return false;
+    }
+    
+    // Initialize slots again (will be empty since we cleared masses)
+    MINISTER_SLOTS = [];
+    await initializeSlots();
+    
+    // Dispatch event to update calendar UI
+    window.dispatchEvent(new CustomEvent('calendar-data-updated'));
+    
+    return true;
+  } catch (error) {
+    console.error("Error resetting calendar data:", error);
+    return false;
+  }
 };
 
 // Helper function to compare dates without time
@@ -230,46 +343,78 @@ export const isMinisterAssignedToService = (
 };
 
 // Assign a minister to a slot
-export const assignMinister = (
+export const assignMinister = async (
   slotId: string, 
   ministerId: string, 
   ministerName: string
-): boolean => {
-  const slotIndex = MINISTER_SLOTS.findIndex(slot => slot.id === slotId);
-  
-  if (slotIndex === -1) return false;
-  
-  const slot = MINISTER_SLOTS[slotIndex];
-  
-  // Check if minister is already assigned to this service
-  if (isMinisterAssignedToService(ministerId, slot.serviceId, slot.date)) {
+): Promise<boolean> => {
+  try {
+    const slotIndex = MINISTER_SLOTS.findIndex(slot => slot.id === slotId);
+    
+    if (slotIndex === -1) return false;
+    
+    const slot = MINISTER_SLOTS[slotIndex];
+    
+    // Check if minister is already assigned to this service
+    if (isMinisterAssignedToService(ministerId, slot.serviceId, slot.date)) {
+      return false;
+    }
+    
+    // Update in Supabase
+    const { error } = await supabase
+      .from('minister_slots')
+      .update({ minister_id: ministerId })
+      .eq('id', slotId);
+    
+    if (error) {
+      console.error("Error assigning minister:", error);
+      return false;
+    }
+    
+    // Update the slot locally
+    MINISTER_SLOTS[slotIndex] = {
+      ...slot,
+      ministerId,
+      ministerName,
+    };
+    
+    return true;
+  } catch (error) {
+    console.error("Error assigning minister:", error);
     return false;
   }
-  
-  // Update the slot
-  MINISTER_SLOTS[slotIndex] = {
-    ...slot,
-    ministerId,
-    ministerName,
-  };
-  
-  return true;
 };
 
 // Remove a minister from a slot
-export const removeMinister = (slotId: string): boolean => {
-  const slotIndex = MINISTER_SLOTS.findIndex(slot => slot.id === slotId);
-  
-  if (slotIndex === -1) return false;
-  
-  // Update the slot by removing the minister
-  MINISTER_SLOTS[slotIndex] = {
-    ...MINISTER_SLOTS[slotIndex],
-    ministerId: undefined,
-    ministerName: undefined,
-  };
-  
-  return true;
+export const removeMinister = async (slotId: string): Promise<boolean> => {
+  try {
+    const slotIndex = MINISTER_SLOTS.findIndex(slot => slot.id === slotId);
+    
+    if (slotIndex === -1) return false;
+    
+    // Update in Supabase
+    const { error } = await supabase
+      .from('minister_slots')
+      .update({ minister_id: null })
+      .eq('id', slotId);
+    
+    if (error) {
+      console.error("Error removing minister:", error);
+      return false;
+    }
+    
+    // Update the slot locally
+    MINISTER_SLOTS[slotIndex] = {
+      ...MINISTER_SLOTS[slotIndex],
+      ministerId: undefined,
+      ministerName: undefined,
+    };
+    
+    return true;
+  } catch (error) {
+    console.error("Error removing minister:", error);
+    return false;
+  }
 };
 
 // Format date for display
@@ -293,4 +438,11 @@ export const getNextWeek = (currentStart: Date): Date => {
 };
 
 // Initialize the minister slots
-initializeSlots();
+(async () => {
+  try {
+    await loadMinisters();
+    await initializeSlots();
+  } catch (error) {
+    console.error("Error initializing data:", error);
+  }
+})();

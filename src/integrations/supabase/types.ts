@@ -9,7 +9,102 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      masses: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          is_recurring: boolean
+          name: string
+          positions: number
+          time: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          is_recurring?: boolean
+          name: string
+          positions?: number
+          time: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          is_recurring?: boolean
+          name?: string
+          positions?: number
+          time?: string
+        }
+        Relationships: []
+      }
+      minister_slots: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          mass_id: string | null
+          minister_id: string | null
+          position: number
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          mass_id?: string | null
+          minister_id?: string | null
+          position: number
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          mass_id?: string | null
+          minister_id?: string | null
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "minister_slots_mass_id_fkey"
+            columns: ["mass_id"]
+            isOneToOne: false
+            referencedRelation: "masses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "minister_slots_minister_id_fkey"
+            columns: ["minister_id"]
+            isOneToOne: false
+            referencedRelation: "ministers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ministers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
