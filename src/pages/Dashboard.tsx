@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import Calendar from "@/components/Calendar";
-import { initializeSlots } from "@/utils/calendarHelpers";
+import { initializeSlots, resetCalendarData } from "@/utils/calendarHelpers";
+import { clearAllServices } from "@/utils/calendarManagement";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
@@ -33,6 +36,17 @@ const Dashboard: React.FC = () => {
   const handleAdminPage = () => {
     navigate("/admin");
   };
+  
+  const handleResetCalendar = () => {
+    if (isAdmin()) {
+      clearAllServices();
+      resetCalendarData();
+      toast({
+        title: "Calendario Resettato",
+        description: "Tutte le messe sono state cancellate dal calendario",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col animate-fade-in">
@@ -45,13 +59,22 @@ const Dashboard: React.FC = () => {
           
           <div className="flex flex-col sm:flex-row gap-2">
             {isAdmin() && (
-              <Button 
-                onClick={handleAdminPage} 
-                variant="outline"
-                className="text-xl"
-              >
-                Pannello Amministratore
-              </Button>
+              <>
+                <Button 
+                  onClick={handleAdminPage} 
+                  variant="outline"
+                  className="text-xl"
+                >
+                  Pannello Amministratore
+                </Button>
+                <Button 
+                  onClick={handleResetCalendar} 
+                  variant="destructive"
+                  className="text-xl"
+                >
+                  Reset Calendario
+                </Button>
+              </>
             )}
             <Button 
               onClick={handleLogout} 

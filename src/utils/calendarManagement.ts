@@ -31,37 +31,8 @@ export const getCalendarServiceTimes = (): ServiceTime[] => {
     console.error("Error loading service times:", error);
   }
   
-  // Create some initial demo data
-  const today = new Date();
-  const monday = new Date(today);
-  
-  // Find the current or next Monday
-  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const daysUntilMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : 8 - dayOfWeek);
-  monday.setDate(today.getDate() + daysUntilMonday);
-  
-  // Find the next Sunday (6 days after Monday)
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  
-  const initialData: ServiceTime[] = [
-    {
-      id: uuidv4(),
-      date: sunday,
-      time: "09:00",
-      name: "Santa Messa Mattutina",
-      isRecurring: true,
-      positions: 2
-    },
-    {
-      id: uuidv4(),
-      date: sunday,
-      time: "18:00",
-      name: "Santa Messa Vespertina",
-      isRecurring: true,
-      positions: 2
-    }
-  ];
+  // Inizializziamo con un array vuoto per resettare tutte le messe
+  const initialData: ServiceTime[] = [];
   
   // Save initial data to localStorage
   saveCalendarServiceTimes(initialData);
@@ -194,4 +165,10 @@ export const copyWeekSchedule = (
 export const getServiceDescription = (service: ServiceTime): string => {
   const dayName = format(service.date, "EEEE", { locale: it });
   return `${service.name} - ${service.time} - ${dayName}`;
+};
+
+// Funzione per cancellare tutte le messe
+export const clearAllServices = (): void => {
+  saveCalendarServiceTimes([]);
+  console.log("Tutte le messe sono state cancellate");
 };

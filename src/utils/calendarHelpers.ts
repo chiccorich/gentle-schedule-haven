@@ -1,4 +1,3 @@
-
 import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { getCalendarServiceTimes, ServiceTime, getDailyServiceTimes } from "./calendarManagement";
@@ -189,6 +188,20 @@ export const getCalendarData = (startDate: Date, numberOfDays = 21): DayData[] =
   }
   
   return result;
+};
+
+// Funzione per reimpostare i dati del calendario (resettando anche i ministri assegnati)
+export const resetCalendarData = () => {
+  // Svuota gli slot dei ministri
+  MINISTER_SLOTS = [];
+  
+  // Inizializza nuovamente gli slot (sarà un array vuoto perché abbiamo svuotato i dati in calendarManagement)
+  initializeSlots();
+  
+  // Dispatch event to update calendar UI
+  window.dispatchEvent(new CustomEvent('calendar-data-updated'));
+  
+  return MINISTER_SLOTS;
 };
 
 // Helper function to compare dates without time
