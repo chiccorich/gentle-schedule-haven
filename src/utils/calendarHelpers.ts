@@ -1,4 +1,3 @@
-
 import { addDays, format, getDay, startOfWeek, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { getCalendarServiceTimes, ServiceTime, getDailyServiceTimes } from "./calendarManagement";
@@ -438,6 +437,12 @@ export const getNextWeek = (currentStart: Date): Date => {
 };
 
 // Initialize the minister slots
+export function startOfWeek(date: Date, options: { weekStartsOn: number }): Date {
+  const day = date.getDay();
+  const diff = (day < options.weekStartsOn ? 7 : 0) + day - options.weekStartsOn;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - diff);
+}
+
 (async () => {
   try {
     await loadMinisters();
